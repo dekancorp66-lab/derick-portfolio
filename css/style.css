@@ -94,7 +94,9 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--acid); outline-
 
 .hero { position: relative; display: flex; min-height: min(900px, 100svh); height: 100svh; flex-direction: column; justify-content: space-between; overflow: hidden; color: #fff; background: #424846; }
 .hero-photo, .hero-shade { position: absolute; inset: 0; }
-.hero-photo img { width: 100%; height: 100%; object-fit: cover; object-position: center 43%; animation: hero-image 1.4s cubic-bezier(.2,.7,.2,1) both; }
+.hero-photo { overflow: hidden; background: #424846; }
+.hero-photo::before { position: absolute; inset: -20px; content: ""; background: url("../assets/WhatsApp%20Image%202026-10-08%20at%209.45.01%20AM.jpeg") center 43% / cover; filter: blur(22px) brightness(.68); transform: scale(1.05); }
+.hero-photo img { position: relative; display: block; width: 100%; height: 100%; object-fit: contain; object-position: center; animation: hero-image 1.4s cubic-bezier(.2,.7,.2,1) both; }
 .hero-shade { background: linear-gradient(180deg, rgba(13, 18, 17, .31) 0%, rgba(13, 18, 17, .08) 36%, rgba(13, 18, 17, .18) 57%, rgba(13, 18, 17, .68) 100%); }
 @keyframes hero-image { from { transform: scale(1.06); } to { transform: scale(1); } }
 .hero-topline, .hero-bottom { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; padding-right: var(--gutter); padding-left: var(--gutter); }
@@ -197,7 +199,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--acid); outline-
   .menu-email { justify-self: start; margin-top: 22px; }
   .menu-panel { padding-top: 115px; }
   .hero { min-height: 680px; height: 100svh; }
-  .hero-photo img { object-position: 56% center; }
+  .hero-photo img { object-fit: cover; object-position: 56% center; }
   .hero-topline { padding-top: 112px; }
   .role { max-width: 210px; font-size: 12px; }
   .hero-index { font-size: 10px; }
