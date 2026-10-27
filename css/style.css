@@ -251,3 +251,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--acid); outline-
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
   .rv { opacity: 1; transform: none; }
 }
+/* 3D particle portrait (js/particles.js). Without JS/WebGL the original photo is shown. */
+.hero-photo.has-3d { background: radial-gradient(circle at 50% 38%, #66706c 0%, #3d4442 72%); }
+.hero-photo.has-3d::before, .hero-photo.has-3d img { display: none; }
+.hero-photo canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }

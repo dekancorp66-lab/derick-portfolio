@@ -13,6 +13,7 @@ Then visit `http://localhost:8000`.
 - Page content and project details: `index.html`
 - Colors, layout, and responsive styles: `css/style.css`
 - Menu, dialogs, reveals, and local clock: `js/main.js`
+- 3D particle portrait in the hero: `js/particles.js` (three.js from cdnjs). The photo it samples is embedded in `js/portrait-data.js`; to change the picture, replace that image data. If WebGL is unavailable, the original photo in `assets/` is shown instead.
 - Replace the image URLs in `index.html` to use your own project photography.
 
 ## Deploy
