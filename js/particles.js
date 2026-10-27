@@ -6,7 +6,13 @@
   const photo = document.querySelector('.hero-photo');
   if (!hero || !photo || !window.THREE || !window.PORTRAIT_SRC) return;
 
-  const STEP = 3, PW = 75, PH = 100, SIZE = 1.55;
+  // Tweak these three to taste
+  const DEPTH = 1;      // how far the face and body stand out (0 = flat, 1.5 = more)
+  const TURN = 0.38;    // how far the portrait turns toward your cursor (radians)
+  const ACID = 0xcbef70; // colour of the floating sparks (matches the site accent)
+  const small = window.matchMedia('(max-width: 800px)').matches;
+  const STEP = small ? 3 : 2;           // lower = more particles = sharper likeness
+  const PW = 75, PH = 100, SIZE = small ? 1.5 : 1.05;
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const BG = window.PORTRAIT_BG;
 
@@ -29,6 +35,18 @@
   sg.beginPath(); sg.arc(32, 32, 30, 0, 7); sg.fillStyle = '#fff'; sg.fill();
   const texture = new THREE.CanvasTexture(sprite);
 
+  // Depth comes from face shape only (never from brightness), so teeth, collar and tie
+  // stay on the same plane as the rest of the face instead of sticking out.
+  function depthAt(u, v) {
+    const g = (cu, cv, su, sv) => Math.exp(-(((u - cu) ** 2) / (2 * su * su) + ((v - cv) ** 2) / (2 * sv * sv)));
+    const head = 20 * g(0.5, 0.33, 0.14, 0.2);
+    const nose = 3 * g(0.51, 0.355, 0.03, 0.05);
+    const shoulderFade = Math.min(1, Math.max(0, (v - 0.45) / 0.2));
+    const body = 9 * Math.max(0, 1 - Math.pow((u - 0.5) * 2, 2)) * shoulderFade;
+    return head + nose + body;
+  }
+  const tone = (c) => Math.min(1, 0.05 + Math.pow(c / 255, 0.92) * 1.04);
+
   let n = 0, home, pos, vel, geo, started = false, onScreen = true;
   const mouse = { x: 0, y: 0, on: false };
   const ray = new THREE.Raycaster();
@@ -47,11 +65,9 @@
       for (let x = 0; x < iw - 1; x += STEP) {
         const i = ((y + 1) * iw + x + 1) * 4, r = d[i], g = d[i + 1], b = d[i + 2];
         if (Math.hypot(r - BG[0], g - BG[1], b - BG[2]) < 44) continue; // skip the photo backdrop
-        const u = x / iw, v = y / ih, lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-        const bulge = Math.exp(-(((u - 0.5) ** 2) / (2 * 0.15 ** 2) + ((v - 0.32) ** 2) / (2 * 0.19 ** 2)));
-        const dome = 1 - Math.pow((u - 0.5) * 2, 2);
-        H.push((u - 0.5) * PW, (0.5 - v) * PH, 24 * bulge + 12 * dome + (lum - 0.4) * 9 + (Math.random() - 0.5) * 0.8);
-        C.push(Math.min(1, 0.06 + r / 255 * 0.94), Math.min(1, 0.06 + g / 255 * 0.94), Math.min(1, 0.06 + b / 255 * 0.94));
+        const u = x / iw, v = y / ih;
+        H.push((u - 0.5) * PW, (0.5 - v) * PH, depthAt(u, v) * DEPTH + (Math.random() - 0.5) * 0.3);
+        C.push(tone(r), tone(g), tone(b));
       }
     }
     n = H.length / 3;
@@ -69,6 +85,7 @@
     group.add(new THREE.Points(geo, new THREE.PointsMaterial({
       size: SIZE, map: texture, vertexColors: true, alphaTest: 0.5, sizeAttenuation: true
     })));
+    group.add(makeSparks());
     photo.classList.add('has-3d');
     resize();
     waitForPreload(() => {
@@ -78,6 +95,21 @@
     requestAnimationFrame(loop);
   };
   img.src = window.PORTRAIT_SRC;
+
+  // A few drifting sparks around the portrait for atmosphere
+  let sparks;
+  function makeSparks() {
+    const count = 360, arr = new Float32Array(count * 3);
+    for (let i = 0; i < count * 3; i += 3) {
+      arr[i] = (Math.random() - 0.5) * 170; arr[i + 1] = (Math.random() - 0.5) * 130; arr[i + 2] = (Math.random() - 0.5) * 70 - 15;
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+    sparks = new THREE.Points(g, new THREE.PointsMaterial({
+      size: 0.7, map: texture, color: ACID, alphaTest: 0.4, transparent: true, opacity: 0.65, sizeAttenuation: true, depthWrite: false
+    }));
+    return sparks;
+  }
 
   // Begin assembling once the greeting screen has finished
   function waitForPreload(done) {
@@ -151,10 +183,11 @@
       pos[i] += vel[i]; pos[i + 1] += vel[i + 1]; pos[i + 2] += vel[i + 2];
     }
     geo.attributes.position.needsUpdate = true;
-    const ty = mouse.on ? mouse.x * 0.6 : (reduce ? 0 : Math.sin(t * 0.0006) * 0.38);
-    const tx = mouse.on ? -mouse.y * 0.25 : (reduce ? 0 : Math.sin(t * 0.0004) * 0.08);
+    const ty = mouse.on ? mouse.x * TURN : (reduce ? 0 : Math.sin(t * 0.0006) * TURN * 0.5);
+    const tx = mouse.on ? -mouse.y * TURN * 0.35 : (reduce ? 0 : Math.sin(t * 0.0004) * TURN * 0.1);
     group.rotation.y += (ty - group.rotation.y) * 0.06;
     group.rotation.x += (tx - group.rotation.x) * 0.06;
+    if (sparks && !reduce) sparks.rotation.y = t * 0.00003;
     renderer.render(scene, camera);
   }
 })();
